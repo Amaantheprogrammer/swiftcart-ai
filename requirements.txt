@@ -1,0 +1,34 @@
+# LangChain Ecosystem
+langchain
+langchain-core
+langchain-community
+langgraph
+langchain-openai
+langchain-google-genai
+langchain-groq
+langchain-mistralai
+langchain-huggingface
+
+# Vector Databases & Embeddings
+faiss-cpu
+chromadb
+sentence-transformers
+
+# Document Processing & Parsing
+pypdf
+unstructured
+beautifulsoup4
+lxml
+
+# Data Handling & Utilities
+pandas
+numpy
+python-dotenv
+tqdm
+requests
+tiktoken
+
+# Web & UI Frameworks
+fastapi
+uvicorn
+streamlit
