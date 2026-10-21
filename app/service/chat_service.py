@@ -58,7 +58,8 @@ def extract_max_price(message: str) -> float | None:
 def filter_products_by_price(products: list[dict], max_price: float) -> list[dict]:
     filtered_products = list()
     for product in products:
-        if isinstance(product.get("price"), (int, float)) and product.get("price") <= max_price:
+        price = product["price"]
+        if isinstance(price, (int, float)) and price <= max_price:
             filtered_products.append(product)
     return filtered_products
     
