@@ -50,9 +50,6 @@ async def get_product_by_id(id: int):
             )
         return product
 
-    except HTTPException:
-        raise
-
     except (httpx.HTTPError, ValueError) as e:
         raise HTTPException(
             status_code=502,

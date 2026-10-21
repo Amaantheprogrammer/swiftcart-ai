@@ -1,4 +1,5 @@
 import json
+import re
 
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -33,6 +34,27 @@ prompt_template = ChatPromptTemplate.from_messages([
     ),
     ("human", "{message}")
 ])
+
+def extract_max_price(message: str) -> float | None:
+    number = r"(?:₹\s*)?(\d[\d,]*(?:\.\d+)?)"
+
+    patterns = [
+        rf"\bunder\s+{number}",
+        rf"\bbelow\s+{number}",
+        rf"\bless\s+than\s+{number}",
+        rf"\bmaximum\s+(?:price\s+)?(?:of\s+)?{number}",
+        rf"\bmax(?:imum)?\s+(?:budget|price)\s*(?:is|of|:)?\s*{number}",
+        rf"\bbudget\s*(?:is|of|:)?\s*{number}",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, message, re.IGNORECASE)
+
+        if match:
+            price_text = match.group(1).replace(",", "")
+            return float(price_text)
+
+    return None
 
 
 def filter_products_by_price(products: list[dict], max_price: float) -> list[dict]:
