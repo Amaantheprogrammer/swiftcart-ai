@@ -5,9 +5,9 @@ load_dotenv()
 
 model = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 
-async def generate_response(message: str) -> str:
+async def generate_response(message) -> str:
     response = await model.ainvoke(message)
-    content = response.content[0]["text"]
+    content = response.content[0]["text"] 
     
     if isinstance(content, str):
         return content
