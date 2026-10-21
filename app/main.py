@@ -1,6 +1,15 @@
 import httpx
 from fastapi import FastAPI, HTTPException
-from app.product_service import fetch_product_by_id, fetch_products
+from app.service.product_service import fetch_product_by_id, fetch_products
+from langchain_google_genai import ChatGoogleGenerativeAI
+from pydantic import BaseModel
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class ChatRequest(BaseModel):
+    message: str
+
 
 app = FastAPI(
     title="Swift Cart AI Service",
@@ -54,3 +63,15 @@ async def get_product_by_id(id: int):
             detail="Unable to fetch product from Swift Cart backend."
         ) from e
 
+
+@app.post("/ai/chat")
+async def gemini_api_res(request: ChatRequest):
+    model = ChatGoogleGenerativeAI(
+            model="gemini-3.5-flash-lite",
+            temperature=0.4
+        )
+    response = await model.ainvoke(request.message)
+    return {
+        "response": response.content[0]["text"]
+    }
+    
