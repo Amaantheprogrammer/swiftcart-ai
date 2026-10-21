@@ -35,6 +35,14 @@ prompt_template = ChatPromptTemplate.from_messages([
 ])
 
 
+def filter_products_by_price(products: list[dict], max_price: float) -> list[dict]:
+    filtered_products = list()
+    for product in products:
+        if isinstance(product.get("price"), (int, float)) and product.get("price") <= max_price:
+            filtered_products.append(product)
+    return filtered_products
+    
+
 async def process_message(message: str) -> str:
     products = await fetch_products(page=0, size=20)
 
