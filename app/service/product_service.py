@@ -1,9 +1,6 @@
 import httpx
 
-SWIFTCART_BASE_URL = (
-    "https://e-commercebackendproject.onrender.com"
-)
-
+SWIFTCART_BASE_URL = "https://e-commercebackendproject.onrender.com"
 
 async def fetch_products(page: int = 0, size: int = 20):
     async with httpx.AsyncClient(timeout=60.0) as client:
@@ -31,7 +28,7 @@ async def fetch_product_by_id(product_id: int):
 
 
 async def fetch_all_products(size: int = 20):
-    all_products = list[dict]
+    all_products: list[dict] = []
     page = 0
 
     async with httpx.AsyncClient(timeout=60.0) as client:

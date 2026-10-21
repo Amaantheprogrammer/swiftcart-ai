@@ -1,10 +1,8 @@
 import json
 import re
-
 from langchain_core.prompts import ChatPromptTemplate
-
 from app.service.llm_service import generate_response
-from app.service.product_service import fetch_products
+from app.service.product_service import fetch_all_products
 
 
 prompt_template = ChatPromptTemplate.from_messages([
@@ -66,7 +64,12 @@ def filter_products_by_price(products: list[dict], max_price: float) -> list[dic
     
 
 async def process_message(message: str) -> str:
-    products = await fetch_products(page=0, size=20)
+    products = await fetch_all_products()
+    
+    max_price = extract_max_price(message)
+    
+    if max_price is not None:
+        products = filter_products_by_price(products, max_price)
 
     product_context = json.dumps(
         products,
