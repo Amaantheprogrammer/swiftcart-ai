@@ -114,7 +114,7 @@ def extract_category(products: list[dict], message: str) -> str | None:
             
     categories.sort(reverse=True)
     for category in categories:
-        if category.lower() in message.lower():
+        if category.lower() in message:
             return category
     return None
     
