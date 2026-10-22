@@ -33,6 +33,39 @@ prompt_template = ChatPromptTemplate.from_messages([
     ("human", "{message}")
 ])
 
+async def process_message(message: str) -> str:
+    products = await fetch_all_products()
+    
+    max_price = extract_max_price(message)
+    
+    if max_price is not None:
+        products = filter_products_by_price(products, max_price)
+        
+    category = extract_category(products, message)
+    
+    if category is not None:
+        products = filter_products_by_category(products, category)
+    
+    # Convert json to string
+    product_context = json.dumps(
+        products,
+        ensure_ascii=False,
+        indent=2
+    )
+    
+    formatted_prompt: str = prompt_template.invoke({
+        "product_context": product_context,
+        "message": message
+    })
+    
+    # .to_messages() Converts formatted prompt into list of structured message objects (SystemMessage, HumanMessage, AIMessage)
+    response = await generate_response(
+        formatted_prompt.to_messages() 
+    )
+
+    return response
+
+# Helper methods:
 def extract_max_price(message: str) -> float | None:
     number = r"(?:₹\s*)?(\d[\d,]*(?:\.\d+)?)"
 
@@ -54,7 +87,6 @@ def extract_max_price(message: str) -> float | None:
 
     return None
 
-
 def filter_products_by_price(products: list[dict], max_price: float) -> list[dict]:
     filtered_products = list()
     for product in products:
@@ -62,29 +94,28 @@ def filter_products_by_price(products: list[dict], max_price: float) -> list[dic
         if isinstance(price, (int, float)) and price <= max_price:
             filtered_products.append(product)
     return filtered_products
+
+def filter_products_by_category(products: list[dict], category: str) -> list[dict]:
+    filtered_products = list()
+    category = category.strip().lower()
+    for product in products:
+        category_name = product["categoryName"]
+        if isinstance(category_name, str) and category in category_name.strip().lower():
+            filtered_products.append(product)
+    return filtered_products
+
+def extract_category(products: list[dict], message: str) -> str | None:
+    message = message.lower()
+    categories = list()
+    for product in products:
+        category = product["categoryName"]
+        if isinstance(category, str):
+            categories.append(category)
+            
+    categories.sort(reverse=True)
+    for category in categories:
+        if category.lower() in message.lower():
+            return category
+    return None
     
-
-async def process_message(message: str) -> str:
-    products = await fetch_all_products()
-    
-    max_price = extract_max_price(message)
-    
-    if max_price is not None:
-        products = filter_products_by_price(products, max_price)
-
-    product_context = json.dumps(
-        products,
-        ensure_ascii=False,
-        indent=2
-    )
-
-    formatted_prompt: str = prompt_template.invoke({
-        "product_context": product_context,
-        "message": message
-    })
-
-    response = await generate_response(
-        formatted_prompt.to_messages() 
-    )
-
-    return response
+            
