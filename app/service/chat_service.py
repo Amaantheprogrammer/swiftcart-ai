@@ -37,21 +37,15 @@ prompt_template = ChatPromptTemplate.from_messages([
 ])
 
 async def process_message(message: str) -> str:
-    product_ids = retrieve_product_ids(message, n_results=10)
+    max_price = extract_max_price(message)
 
-    if not product_ids:
-        product_context = "No relevant products were found in the catalog."
-
-        formatted_prompt = prompt_template.invoke({
-            "product_context": product_context,
-            "message": message,
-        })
-
-        return await generate_response(formatted_prompt.to_messages())
+    product_ids = retrieve_product_ids(
+        message,
+        n_results=10,
+        max_price=max_price,
+    )
 
     products = await fetch_products_by_ids(product_ids)
-
-    max_price = extract_max_price(message)
 
     if max_price is not None:
         products = filter_products_by_price(products, max_price)
@@ -61,12 +55,11 @@ async def process_message(message: str) -> str:
     if category is not None:
         products = filter_products_by_category(products, category)
 
-    # Converts json to string
-    product_context = json.dumps(
-        products,
-        ensure_ascii=False,
-        indent=2,
-    )
+    if products:
+        # Converts json to string
+        product_context = json.dumps(products, ensure_ascii=False, indent=2)
+    else:
+        product_context = "No relevant products were found in the catalog."
 
     formatted_prompt = prompt_template.invoke({
         "product_context": product_context,
@@ -75,7 +68,6 @@ async def process_message(message: str) -> str:
     
     # .to_messages() Converts formatted prompt into list of structured message objects (SystemMessage, HumanMessage, AIMessage)
     return await generate_response(formatted_prompt.to_messages())
-
 
 # Helper methods:
 def extract_max_price(message: str) -> float | None:
