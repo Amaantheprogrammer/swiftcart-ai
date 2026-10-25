@@ -83,3 +83,17 @@ def search_products(query: str, n_results: int = 5) -> list[dict]:
         }
         for document, distance in results
     ]
+
+def retrieve_product_ids(query:str, n_results: int = 10) -> list[dict]:
+    if not query.strip() or n_results <= 0:
+        return []
+    results = vector_store.similarity_search(query, n_results)
+    
+    product_ids = []
+    
+    for document in results:
+        product_id = document.metadata["product_id"]
+        
+        if product_id is not None:
+            product_ids.append(product_id)
+    return product_ids

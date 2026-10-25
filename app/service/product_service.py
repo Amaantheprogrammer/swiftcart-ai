@@ -56,3 +56,26 @@ async def fetch_all_products(size: int = 20):
 
     return all_products
 
+async def fetch_products_by_ids(product_ids: list[int]) -> list[dict]:
+    if not product_ids:
+        return []
+
+    products_by_id = {}
+
+    products = await fetch_all_products()
+
+    for product in products:
+        if product.get("id") is not None:
+            product_id = int(product["id"])
+            products_by_id[product_id] = product
+
+    result_products = []
+
+    for product_id in product_ids:
+        if product_id in products_by_id:
+            result_products.append(products_by_id[product_id])
+
+    return result_products
+
+
+
