@@ -2,7 +2,7 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 
-embedding_model = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+embedding_model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2")
 
 # Create the vector database
 vector_store = Chroma(
