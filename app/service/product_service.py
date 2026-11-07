@@ -4,34 +4,8 @@ SWIFTCART_BASE_URL = "https://e-commercebackendproject.onrender.com"
 PRODUCT_URL = f"{SWIFTCART_BASE_URL}/products"
 DEFAULT_TIMEOUT = 60
 
-client = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT)
-
 async def fetch_products(page: int = 0, size: int = 20):
-    response = await client.get(
-        PRODUCT_URL,
-        params={"page": page, "size": size}
-    )
-    response.raise_for_status()
-
-    data = response.json()
-    return data["content"]
-
-
-async def fetch_product_by_id(product_id: int):
-    response = await client.get(f"{PRODUCT_URL}/{product_id}")
-
-    if response.status_code == 404:
-        return None
-
-    response.raise_for_status()
-    return response.json()
-
-
-async def fetch_all_products(size: int = 20):
-    all_products: list[dict] = []
-    page = 0
-
-    while True:
+    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
         response = await client.get(
             PRODUCT_URL,
             params={
@@ -39,42 +13,73 @@ async def fetch_all_products(size: int = 20):
                 "size": size
             }
         )
+        response.raise_for_status()
+
+        data = response.json()
+        return data["content"]
+
+
+async def fetch_product_by_id(product_id: int):
+    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+        response = await client.get(f"{PRODUCT_URL}/{product_id}")
+
+        if response.status_code == 404:
+            return None
 
         response.raise_for_status()
-        data = response.json()
+        return response.json()
 
-        products = data["content"]
-        all_products.extend(products)
 
-        total_pages = data["page"]["totalPages"]
+async def fetch_all_products(size: int = 20):
+    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+        all_products: list[dict] = []
+        page = 0
 
-        if page + 1 >= total_pages:
-            break
+        while True:
+            response = await client.get(
+                PRODUCT_URL,
+                params={
+                    "page": page,
+                    "size": size
+                }
+            )
 
-        page += 1
+            response.raise_for_status()
+            data = response.json()
 
-    return all_products
+            products = data["content"]
+            all_products.extend(products)
+
+            total_pages = data["totalPages"]
+
+            if page + 1 >= total_pages:
+                break
+
+            page += 1
+
+        return all_products
 
 async def fetch_products_by_ids(product_ids: list[int]) -> list[dict]:
-    if not product_ids:
-        return []
+    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+        if not product_ids:
+            return []
 
-    products_by_id = {}
+        products_by_id = {}
 
-    products = await fetch_all_products()
+        products = await fetch_all_products()
 
-    for product in products:
-        if product.get("id") is not None:
-            product_id = int(product["id"])
-            products_by_id[product_id] = product
+        for product in products:
+            if product.get("id") is not None:
+                product_id = int(product["id"])
+                products_by_id[product_id] = product
 
-    result_products = []
+        result_products = []
 
-    for product_id in product_ids:
-        if product_id in products_by_id:
-            result_products.append(products_by_id[product_id])
+        for product_id in product_ids:
+            if product_id in products_by_id:
+                result_products.append(products_by_id[product_id])
 
-    return result_products
+        return result_products
 
 
 

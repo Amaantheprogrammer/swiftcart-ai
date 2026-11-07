@@ -15,7 +15,7 @@ vector_store = Chroma(
 
 
 # Convert product data into Document objects and store them in ChromaDB
-def index_products(products: list[dict]) -> int:
+def store_products(products: list[dict]) -> int:
     documents = []
 
     for product in products:
