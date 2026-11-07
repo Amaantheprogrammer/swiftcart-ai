@@ -1,10 +1,8 @@
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 
-embedding_model = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
+embedding_model = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
 # Create the vector database
 vector_store = Chroma(
