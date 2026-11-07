@@ -2,6 +2,7 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from app.service.product_service import fetch_product_by_id, fetch_products
 from app.router.chat import router as chat_router
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,6 +12,20 @@ app = FastAPI(
     description="AI-powered shopping assistant for Swift Cart",
     version="1.0.0"
 )
+
+origins = [
+    "http://localhost:5173",
+    "https://swiftcart-app.vercel.app"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 app.include_router(chat_router)
 

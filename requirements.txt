@@ -8,6 +8,7 @@ langchain-google-genai
 langchain-groq
 langchain-mistralai
 langchain-huggingface
+langchain-chroma
 
 # Vector Databases & Embeddings
 faiss-cpu
