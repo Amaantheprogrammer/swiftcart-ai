@@ -1,16 +1,33 @@
 import httpx
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
-from app.service.product_service import fetch_product_by_id, fetch_products
+from app.service.product_service import fetch_all_products, fetch_product_by_id, fetch_products
+from app.service.vector_service import store_products
 from app.router.chat import router as chat_router
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 load_dotenv()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        print("Fetching products to seed vector database...")
+        products = await fetch_all_products()
+        if products:
+            count = store_products(products)
+            print(f"Successfully indexed {count} products into ChromaDB!")
+        else:
+            print("No products found from backend to index.")
+    except Exception as e:
+        print(f"Error seeding vector database on startup: {e}")
+    yield
+
 app = FastAPI(
     title="Swift Cart AI Service",
     description="AI-powered shopping assistant for Swift Cart",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 origins = [
@@ -36,7 +53,6 @@ async def health_check():
         "status": "UP",
         "service": "swift-cart-ai"
     }
-
 
 @app.get("/products")
 async def get_products(page: int = 0, size: int = 20):
