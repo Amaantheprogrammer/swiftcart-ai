@@ -1,9 +1,14 @@
 import json
-import re
 from langchain_core.prompts import ChatPromptTemplate
 from app.service.llm_service import generate_response
-from app.service.product_service import fetch_all_products, fetch_products_by_ids
+from app.service.product_service import fetch_products_by_ids
 from app.service.vector_service import retrieve_product_ids
+from app.util.product_util import (
+    extract_category,
+    extract_max_price,
+    filter_products_by_category,
+    filter_products_by_price
+)
 
 
 prompt_template = ChatPromptTemplate.from_messages([
@@ -68,58 +73,3 @@ async def process_message(message: str) -> str:
     
     # .to_messages() Converts formatted prompt into list of structured message objects (SystemMessage, HumanMessage, AIMessage)
     return await generate_response(formatted_prompt.to_messages())
-
-# Helper methods:
-def extract_max_price(message: str) -> float | None:
-    number = r"(?:₹\s*)?(\d[\d,]*(?:\.\d+)?)"
-
-    patterns = [
-        rf"\bunder\s+{number}",
-        rf"\bbelow\s+{number}",
-        rf"\bless\s+than\s+{number}",
-        rf"\bmaximum\s+(?:price\s+)?(?:of\s+)?{number}",
-        rf"\bmax(?:imum)?\s+(?:budget|price)\s*(?:is|of|:)?\s*{number}",
-        rf"\bbudget\s*(?:is|of|:)?\s*{number}",
-    ]
-
-    for pattern in patterns:
-        match = re.search(pattern, message, re.IGNORECASE)
-
-        if match:
-            price_text = match.group(1).replace(",", "")
-            return float(price_text)
-
-    return None
-
-def filter_products_by_price(products: list[dict], max_price: float) -> list[dict]:
-    filtered_products = list()
-    for product in products:
-        price = product["price"]
-        if isinstance(price, (int, float)) and price <= max_price:
-            filtered_products.append(product)
-    return filtered_products
-
-def filter_products_by_category(products: list[dict], category: str) -> list[dict]:
-    filtered_products = list()
-    category = category.strip().lower()
-    for product in products:
-        category_name = product["categoryName"]
-        if isinstance(category_name, str) and category in category_name.strip().lower():
-            filtered_products.append(product)
-    return filtered_products
-
-def extract_category(products: list[dict], message: str) -> str | None:
-    message = message.lower()
-    categories = list()
-    for product in products:
-        category = product["categoryName"]
-        if isinstance(category, str):
-            categories.append(category)
-            
-    categories.sort(reverse=True)
-    for category in categories:
-        if category.lower() in message:
-            return category
-    return None
-    
-            
