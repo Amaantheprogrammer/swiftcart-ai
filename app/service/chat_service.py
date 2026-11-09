@@ -4,7 +4,8 @@ import json
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 
-from app.service.llm_service import llm
+from app.util.llm_util import llm
+
 from app.service.product_service import fetch_products_by_ids
 from app.service.vector_service import retrieve_product_ids
 
@@ -84,7 +85,6 @@ async def get_product_context(inputs: dict) -> dict:
 
 
 chat_chain = (RunnableLambda(get_product_context) | prompt_template | llm)
-
 
 async def process_message(message: str) -> str:
 

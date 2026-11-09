@@ -11,7 +11,6 @@ vector_store = Chroma(
     persist_directory="./data/chroma-db",
 )
 
-
 # Convert product data into Document objects and store them in ChromaDB
 def store_products(products: list[dict]) -> int:
     documents = []
@@ -82,6 +81,7 @@ def search_products(query: str, n_results: int = 5) -> list[dict]:
         for document, distance in results
     ]
 
+# Retrieve productIds from ChromaDb with max price filter
 def retrieve_product_ids(query: str, n_results: int = 10, max_price: float | None = None) -> list[int]:
     if not query.strip() or n_results <= 0:
         return []
