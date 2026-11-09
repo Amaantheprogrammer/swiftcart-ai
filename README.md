@@ -38,7 +38,7 @@ The service uses semantic retrieval to find relevant products from the Swift Car
 
 Build a practical AI layer for an e-commerce platform that can grow from **read-only product discovery** into a **safe, tool-using shopping agent** capable of helping a signed-in customer manage a cart, wishlist, and orders with explicit authorization.
 
-> **Scope and accuracy note:** The code in this repository currently implements product discovery and read-only product API routes. Cart modification, wishlist modification, checkout, order placement, payment, and autonomous agent workflows are proposed future integrations — they are not implemented features yet.
+> **Scope and accuracy note:** The code in this repository currently implements product discovery and read-only product API routes. Cart modification, wishlist modification, checkout, order placement, payment, and autonomous agent workflows are proposed future integrations, they are not implemented features yet.
 
 ---
 
