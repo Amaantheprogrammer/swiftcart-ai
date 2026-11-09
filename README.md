@@ -675,7 +675,6 @@ For a leaner and more maintainable service:
 - [ ] Add confirmation-gated cart and order mutations
 - [ ] Add user-scoped conversation state
 - [ ] Add tracing, evaluation, and production monitoring
-- [ ] Deploy and connect the AI service to the Swift Cart frontend
 
 ---
 
