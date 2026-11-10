@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnableLambda
 from app.util.llm_util import llm
 
 from app.service.product_service import fetch_products_by_ids
-from app.service.vector_service import retrieve_product_ids
+from app.service.vector_service import search_product_ids
 
 from app.util.product_util import (
     extract_category,
@@ -56,7 +56,7 @@ async def get_product_context(inputs: dict) -> dict:
     max_price = extract_max_price(message)
 
     product_ids = await asyncio.to_thread(
-        retrieve_product_ids,
+        search_product_ids,
         message,
         n_results=10,
         max_price=max_price
