@@ -5,7 +5,7 @@ from langchain_core.documents import Document
 embedding_model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2")
 
 # Create the vector database
-vector_store = Chroma(
+vector_db = Chroma(
     collection_name="swiftcart_products",
     embedding_function=embedding_model,
     persist_directory="./data/chroma-db",
@@ -54,7 +54,7 @@ def store_products(products: list[dict]) -> int:
         return 0
 
     # Re-indexing the same product IDs updates existing records.
-    vector_store.add_documents(
+    vector_db.add_documents(
         documents=documents,
         ids=[str(document.metadata["product_id"]) for document in documents],
     )
@@ -62,40 +62,46 @@ def store_products(products: list[dict]) -> int:
     return len(documents)
 
 
-# Find products that are semantically similar to a query
-def search_products(query: str, n_results: int = 5) -> list[dict]:
+def _base_similarity_search(query: str, n_results: int, max_price: float | None):
+    """
+    Internal private helper: Handles query validation, metadata filters,
+    and executes the vector search against ChromaDB.
+    """
     if not query.strip() or n_results <= 0:
-        return []
-
-    results = vector_store.similarity_search_with_score(
-        query,
+        return list()
+    
+    metadata_filter = {"price" : {"$lte" : max_price}} if max_price is not None else None
+    
+    return vector_db.similarity_search_with_score(
+        query=query,
         k=n_results,
+        filter=metadata_filter
     )
-
+    
+def search_products(query: str, n_results: int = 10):
+    """
+    Find products that are semantically similar to a query
+    """
+    search_result = _base_similarity_search(
+        query=query,
+        n_results=n_results
+    )
+    
     return [
         {
-            "document": document.page_content,
-            "metadata": document.metadata,
-            "distance": distance,
+            "document" : document.page_content,
+            "metadata" : document.metadata,
+            "distance" : distance
         }
-        for document, distance in results
+        for document, distance in search_result
     ]
 
-# Retrieve productIds from ChromaDb with max price filter
-def retrieve_product_ids(query: str, n_results: int = 10, max_price: float | None = None) -> list[int]:
-    if not query.strip() or n_results <= 0:
-        return []
-
-    metadata_filter = None
-    if max_price is not None:
-        metadata_filter = {"price": {"$lte": max_price}}
-
-    results = vector_store.similarity_search(
-        query,
-        k=n_results,
-        filter=metadata_filter,
-    )
-
+def search_product_ids(query: str, n_results: int = 10, max_price: float | None = None) -> list[int]:
+    """
+    Retrieve productIds from ChromaDb with max price filter (for the chat pipeline)
+    """
+    results = _base_similarity_search(query, n_results=n_results, max_price=max_price)
+    
     return [
         document.metadata["product_id"]
         for document in results
