@@ -1,12 +1,16 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import asyncio
+
 from app.service.product_service import fetch_all_products
-from app.service.vector_service import index_products, search_products
+from app.service.vector_service import store_products, search_products
 
 async def main() -> None:
     products = await fetch_all_products()
     print(f"Fetched {len(products)} products")
     
-    indexed_count = index_products(products=products)
+    indexed_count = store_products(products=products)
     print(f"Indexed {indexed_count} products")
     queries = [
         "comfortable footwear for running",
