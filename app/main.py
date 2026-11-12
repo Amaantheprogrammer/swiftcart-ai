@@ -16,10 +16,11 @@ async def lifespan(app: FastAPI):
     yield
 
 async def background_seed_database():
-    await asyncio.sleep(delay=5.0)
+    await asyncio.sleep(5.0)
     
     max_retries = 5
     delay = 3.0
+    
     for attempt in range(1, max_retries + 1):
         try:
             print(f"Background seeding: Fetching products (Attempt {attempt})...")
@@ -29,7 +30,10 @@ async def background_seed_database():
                 print(f"Successfully indexed {count} products into ChromaDB in the background!")
                 break
         except Exception as e:
-            print(f"Seeding attempt {attempt} failed: {e}. Retrying in {delay}s...")
+            print(f"Seeding attempt {attempt} failed: {str(e)}. Retrying in {delay} seconds...")
+            if attempt == max_retries:
+                print("Max retry attempts reached. Background seeding failed.")
+                break
             await asyncio.sleep(delay)
             delay *= 2
 
@@ -54,7 +58,7 @@ app.add_middleware(
 )
 
 
-app.include_router(chat_router)
+app.include_router(router=chat_router)
 
 @app.get("/")
 async def health_check():
