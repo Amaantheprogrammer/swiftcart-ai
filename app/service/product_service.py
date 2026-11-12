@@ -5,7 +5,7 @@ import os
 
 SWIFTCART_BASE_URL = os.getenv(key="SWIFTCART_BASE_URL")
 PRODUCT_URL = f"{SWIFTCART_BASE_URL}/products"
-DEFAULT_TIMEOUT = os.getenv(key="DEFAULT_TIMEOUT")
+DEFAULT_TIMEOUT = float(os.getenv(key="DEFAULT_TIMEOUT"))
 
 async def fetch_products(page: int = 0, size: int = 20):
     async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
