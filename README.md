@@ -563,7 +563,6 @@ A small, version-controlled set of realistic shopping queries with expected prod
 ## 🔍 Engineering Improvements Before Production
 
 The following items are visible in the uploaded source snapshot and should be addressed before presenting the service as production-ready.
-=your_google_ai_api_key
 ```
 
 ### 1. Make catalogue indexing reliable
