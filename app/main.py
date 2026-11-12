@@ -1,4 +1,5 @@
 import httpx
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from app.service.product_service import fetch_all_products, fetch_product_by_id, fetch_products
@@ -11,17 +12,26 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        print("Fetching products to seed vector database...")
-        products = await fetch_all_products()
-        if products:
-            count = store_products(products)
-            print(f"Successfully indexed {count} products into ChromaDB!")
-        else:
-            print("No products found from backend to index.")
-    except Exception as e:
-        print(f"Error seeding vector database on startup: {e}")
+    asyncio.create_task(coro=background_seed_database()) # co-routine object
     yield
+
+async def background_seed_database():
+    await asyncio.sleep(delay=5.0)
+    
+    max_retries = 5
+    delay = 3.0
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"Background seeding: Fetching products (Attempt {attempt})...")
+            products = await fetch_all_products()
+            if products:
+                count = store_products(products)
+                print(f"Successfully indexed {count} products into ChromaDB in the background!")
+                break
+        except Exception as e:
+            print(f"Seeding attempt {attempt} failed: {e}. Retrying in {delay}s...")
+            await asyncio.sleep(delay)
+            delay *= 2
 
 app = FastAPI(
     title="Swift Cart AI Service",
@@ -36,7 +46,7 @@ origins = [
 ]
 
 app.add_middleware(
-    CORSMiddleware,
+    middleware_class=CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
