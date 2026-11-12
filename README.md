@@ -563,59 +563,10 @@ A small, version-controlled set of realistic shopping queries with expected prod
 ## 🔍 Engineering Improvements Before Production
 
 The following items are visible in the uploaded source snapshot and should be addressed before presenting the service as production-ready.
-
-### 1. Fix the `HTTPException` import
-
-`app/service/product_service.py` currently imports:
-
-```python
-from http.client import HTTPException
+=your_google_ai_api_key
 ```
 
-`http.client` does not provide FastAPI's `HTTPException`. Import it from FastAPI if the service layer is intentionally raising HTTP errors:
-
-```python
-from fastapi import HTTPException
-```
-
-A cleaner long-term design is to raise service-specific exceptions in the service layer and translate them into HTTP responses in the route layer.
-
-### 2. Verify the batch product endpoint
-
-`fetch_products_by_ids()` sends a request to:
-
-```http
-POST /products/batch
-```
-
-with a body shaped like:
-
-```json
-{
-  "productIds": [12, 24, 42]
-}
-```
-
-Confirm that the Java backend exposes this exact route and request contract. If it does not, implement and test the endpoint or change the AI service to use supported backend routes. The agent should not depend on an assumed endpoint.
-
-### 3. Fix the vector test script
-
-`test_vector_service.py` imports `index_products`, but the current `vector_service.py` defines `store_products`. The test script will fail at import time until the names are aligned.
-
-Convert the script into automated tests with assertions rather than relying only on printed output.
-
-### 4. Externalize configuration
-
-The backend URL is hardcoded in `product_service.py`. Move it into validated application settings, for example:
-
-```env
-SWIFTCART_BASE_URL=https://e-commercebackendproject.onrender.com
-GOOGLE_API_KEY=your_google_ai_api_key
-```
-
-Read the values through a single settings module so local, test, staging, and production environments can use different configuration.
-
-### 5. Make catalogue indexing reliable
+### 1. Make catalogue indexing reliable
 
 The current FastAPI lifespan attempts a full catalogue fetch and indexing operation at every application startup. For production:
 - Separate indexing from API startup.
@@ -625,7 +576,7 @@ The current FastAPI lifespan attempts a full catalogue fetch and indexing operat
 - Avoid simultaneous full re-indexing by multiple application workers.
 - Use a shared persistent vector store if the service is deployed with multiple instances.
 
-### 6. Improve filtering correctness
+### 2. Improve filtering correctness
 
 Current price extraction supports a useful but limited set of phrases. Add tests for commas, decimals, currency symbols, upper/lower bounds, and ambiguous budgets.
 
@@ -633,7 +584,7 @@ Current category detection checks category names found in the retrieved candidat
 
 Also validate stock, approval status, and any other hard requirement against authoritative backend fields before recommending a product.
 
-### 7. Clean up dependencies
+### 3. Clean up dependencies
 
 The current `requirements.txt` includes a broad set of integrations and tools — including multiple model providers, FAISS, document parsers, pandas, Streamlit, and other packages — that are not imported by the current application flow.
 
@@ -644,7 +595,7 @@ For a leaner and more maintainable service:
 - Add test dependencies such as `pytest` and `pytest-asyncio` if using them.
 - Remove integrations only after checking whether another module or deployment workflow uses them.
 
-### 8. Add operational safeguards
+### 4. Add operational safeguards
 
 - Configure explicit HTTP connect/read timeouts and bounded retries.
 - Add structured logging and correlation IDs.
