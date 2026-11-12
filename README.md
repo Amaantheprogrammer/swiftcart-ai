@@ -559,11 +559,9 @@ For order placement:
 A small, version-controlled set of realistic shopping queries with expected products and constraints will make these improvements measurable.
 
 ---
-
 ## 🔍 Engineering Improvements Before Production
 
 The following items are visible in the uploaded source snapshot and should be addressed before presenting the service as production-ready.
-```
 
 ### 1. Make catalogue indexing reliable
 
