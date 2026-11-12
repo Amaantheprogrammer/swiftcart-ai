@@ -104,6 +104,6 @@ def search_product_ids(query: str, n_results: int = 10, max_price: float | None 
     
     return [
         document.metadata["product_id"]
-        for document in results
+        for document, distance in results
         if document.metadata.get("product_id") is not None
     ]
