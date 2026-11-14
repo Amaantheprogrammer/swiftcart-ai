@@ -84,7 +84,8 @@ def search_products(query: str, n_results: int = 10):
     """
     search_result = _base_similarity_search(
         query=query,
-        n_results=n_results
+        n_results=n_results,
+        max_price=None
     )
     
     return [

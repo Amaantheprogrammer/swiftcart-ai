@@ -1,11 +1,14 @@
 from fastapi import HTTPException
+from dotenv import load_dotenv
 
 import httpx
 import os
 
+load_dotenv()
+
 SWIFTCART_BASE_URL = os.getenv(key="SWIFTCART_BASE_URL")
 PRODUCT_URL = f"{SWIFTCART_BASE_URL}/products"
-DEFAULT_TIMEOUT = float(os.getenv(key="DEFAULT_TIMEOUT"))
+DEFAULT_TIMEOUT = float(os.getenv(key="DEFAULT_TIMEOUT", default="60.0"))
 
 async def fetch_products(page: int = 0, size: int = 20):
     async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
@@ -33,7 +36,7 @@ async def fetch_product_by_id(product_id: int):
         return response.json()
 
 
-async def fetch_all_products(size: int = 20):
+async def fetch_all_products(size: int = 20) -> list[dict]:
     async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
         all_products: list[dict] = []
         page = 0
