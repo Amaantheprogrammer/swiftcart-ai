@@ -53,7 +53,7 @@ def _to_document(product: dict) -> Document | None:
     }
     if isinstance(price, (int, float)) and not isinstance(price, bool):
         metadata["price"] = float(price)
-    return Document(page_content, metadata)
+    return Document(page_content=page_content, metadata=metadata)
 
 # Convert product data into Document objects and store them in ChromaDB
 def store_products(products: list[dict]) -> int:
