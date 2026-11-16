@@ -29,7 +29,7 @@ def _to_document(product: dict) -> Document | None:
     Internal private helper
     Converts product to document
     """
-    product_id = product.get(key="id")
+    product_id = product.get("id")
     if product_id is None:
         return None
     try:
@@ -37,9 +37,9 @@ def _to_document(product: dict) -> Document | None:
     except (TypeError, ValueError):
         return None
 
-    name = str(product.get(key="name", default=""))
-    category = str(product.get(key="categoryName", default=""))
-    description = str(product.get(key="description", default=""))
+    name = str(product.get("name", ""))
+    category = str(product.get("categoryName", ""))
+    description = str(product.get("description", ""))
     price = product.get("price")
     page_content = (
         f"Product: {name}\nCategory: {category}\n"
