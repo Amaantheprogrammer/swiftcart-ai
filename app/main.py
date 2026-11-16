@@ -1,41 +1,64 @@
+import logging
 import httpx
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from app.service.product_service import fetch_all_products, fetch_product_by_id, fetch_products
 from app.service.vector_service import store_products
-from app.router.chat import router as chat_router
+from app.router.chat_router import router as chat_router
+from app.util.env_util import (
+    INDEX_STARTUP_RETRIES,
+    INDEX_RETRY_DELAY,
+    HTTP_READ_TIMEOUT,
+    HTTP_CONNECTION_TIMEOUT
+)
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 load_dotenv()
+logging.basicConfig(level="INFO")
+logger = logging.getLogger(name=__name__)
+
+async def _seed_catalogue(client: httpx.AsyncClient) -> None:
+    """
+    Internal private helper
+    Fetch all products from Springboot backend and store into ChromaDb
+    """
+    retries = INDEX_STARTUP_RETRIES
+    delay = INDEX_RETRY_DELAY
+    for i in range(1, retries + 1):
+        try:
+            logger.info("Fetching Swift Cart catalogue for vector indexing (attempt %s/%s)", i, retries)
+            products = await fetch_all_products(client=client)
+            indexed = await asyncio.to_thread(store_products, products)
+            logger.info("Indexed %s products into Chroma", indexed)
+            return
+        except Exception:
+            logger.exception("Catalogue indexing attempt %s failed", i)
+            if i < retries:
+                await asyncio.sleep(delay=delay * (2 ** (i - 1)))
+    logger.error(msg="Catalogue indexing did not complete; product chat may be unavailable until indexed")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    asyncio.create_task(coro=background_seed_database()) # co-routine object
-    yield
-
-async def background_seed_database():
-    await asyncio.sleep(5.0)
-    
-    max_retries = 5
-    delay = 3.0
-    
-    for attempt in range(1, max_retries + 1):
+    timeout = httpx.Timeout(
+        timeout=HTTP_READ_TIMEOUT,
+        connect=HTTP_CONNECTION_TIMEOUT,
+    )
+    limits = httpx.Limits(max_connections=20, max_keepalive_connections=10)
+    async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
+        app.state.http_client = client
+        # Keep indexing in the background so API startup/health checks are not blocked.
+        seed_task = asyncio.create_task(_seed_catalogue(client), name="catalogue-indexing")
+        app.state.seed_task = seed_task
         try:
-            print(f"Background seeding: Fetching products (Attempt {attempt})...")
-            products = await fetch_all_products()
-            if products:
-                count = store_products(products)
-                print(f"Successfully indexed {count} products into ChromaDB in the background!")
-                break
-        except Exception as e:
-            print(f"Seeding attempt {attempt} failed: {str(e)}. Retrying in {delay} seconds...")
-            if attempt == max_retries:
-                print("Max retry attempts reached. Background seeding failed.")
-                break
-            await asyncio.sleep(delay)
-            delay *= 2
+            yield
+        finally:
+            seed_task.cancel()
+            try:
+                await seed_task
+            except asyncio.CancelledError:
+                pass
 
 app = FastAPI(
     title="Swift Cart AI Service",
@@ -69,9 +92,9 @@ async def health_check():
     }
 
 @app.get("/products")
-async def get_products(page: int = 0, size: int = 20):
+async def get_products(request: Request, page: int = 0, size: int = 20):
     try:
-        products = await fetch_products(page, size)
+        products = await fetch_products(page, size, client=request.app.state.http_client)
         return {
             "count": len(products),
             "products": products
@@ -85,9 +108,9 @@ async def get_products(page: int = 0, size: int = 20):
 
 
 @app.get("/products/{id}")
-async def get_product_by_id(id: int):
+async def get_product_by_id(request: Request, id: int):
     try:
-        product = await fetch_product_by_id(id)
+        product = await fetch_product_by_id(id, client=request.app.state.http_client)
         if product is None:
             raise HTTPException(
                 status_code=404,

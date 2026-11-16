@@ -1,5 +1,6 @@
 import asyncio
 import json
+import httpx
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
@@ -21,7 +22,7 @@ prompt_template = ChatPromptTemplate.from_messages([
     (
         "system",
         """
-        You are Swift Cart AI, an AI shopping assistant.
+        You are Swift-AI, an AI shopping assistant.
 
         Help customers discover and compare products in the Swift Cart catalog.
 
@@ -49,7 +50,7 @@ prompt_template = ChatPromptTemplate.from_messages([
 ])
 
 
-async def get_product_context(inputs: dict) -> dict:
+async def get_product_context(inputs: dict, client: httpx.AsyncClient | None = None) -> dict:
 
     message = inputs["message"]
 
@@ -62,7 +63,7 @@ async def get_product_context(inputs: dict) -> dict:
         max_price=max_price
     )
 
-    products = await fetch_products_by_ids(product_ids)
+    products = await fetch_products_by_ids(product_ids, client)
 
     if max_price is not None:
         products = filter_products_by_price(products, max_price)
@@ -83,11 +84,9 @@ async def get_product_context(inputs: dict) -> dict:
         "product_context": product_context
     }
 
-
 chat_chain = (RunnableLambda(get_product_context) | prompt_template | llm)
 
-async def process_message(message: str) -> str:
-
-    return await chat_chain.ainvoke({
-        "message": message
-    })
+async def process_message(message: str, client: httpx.AsyncClient | None = None) -> str:
+    context = await get_product_context(inputs={"message": message}, client=client)
+    response = await chat_chain.ainvoke(context)
+    return response.content

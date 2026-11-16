@@ -1,0 +1,15 @@
+import os
+
+GOOGLE_API_KEY = os.getenv(key="GOOGLE_API_KEY")
+
+SWIFTCART_BASE_URL = os.getenv(key="SWIFTCART_BASE_URL")
+PRODUCT_URL = f"{SWIFTCART_BASE_URL}/products"
+
+HTTP_READ_TIMEOUT = float(os.getenv(key="HTTP_READ_TIMEOUT"))
+HTTP_CONNECTION_TIMEOUT = float(os.getenv(key="HTTP_CONNECTION_TIMEOUT"))
+
+GEMINI_MODEL = os.getenv(key="GEMINI_MODEL")
+EMBEDDING_MODEL = os.getenv(key="EMBEDDING_MODEL")
+
+INDEX_STARTUP_RETRIES = int(os.getenv(key="INDEX_STARTUP_RETRIES"))
+INDEX_RETRY_DELAY = float(os.getenv(key="INDEX_RETRY_DELAY"))

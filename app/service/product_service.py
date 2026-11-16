@@ -1,49 +1,60 @@
-from fastapi import HTTPException
-from dotenv import load_dotenv
-
 import httpx
-import os
+from dotenv import load_dotenv
+from app.util.env_util import (
+    PRODUCT_URL,
+    HTTP_CONNECTION_TIMEOUT,
+    HTTP_READ_TIMEOUT
+)
 
 load_dotenv()
 
-SWIFTCART_BASE_URL = os.getenv(key="SWIFTCART_BASE_URL")
-PRODUCT_URL = f"{SWIFTCART_BASE_URL}/products"
-DEFAULT_TIMEOUT = float(os.getenv(key="DEFAULT_TIMEOUT", default="60.0"))
+def _timeout() -> httpx.Timeout:
+    return httpx.Timeout(timeout=HTTP_READ_TIMEOUT, connect=HTTP_CONNECTION_TIMEOUT)
 
-async def fetch_products(page: int = 0, size: int = 20):
-    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-        response = await client.get(
-            PRODUCT_URL,
+async def _request_client(client: httpx.AsyncClient | None):
+    """Use the app-wide pooled client, or a short-lived client for standalone use."""
+    if client is not None:
+        return client, False
+    return httpx.AsyncClient(timeout=_timeout()), True
+
+async def fetch_products(page: int = 0, size: int = 20, client: httpx.AsyncClient | None = None):
+    http, owned = await _request_client(client=client)
+    try:
+        response = await http.get(
+            url=PRODUCT_URL,
             params={
                 "page": page,
                 "size": size
             }
         )
         response.raise_for_status()
-
         data = response.json()
         return data["content"]
+    finally:
+        if owned:
+            await http.aclose()
 
-
-async def fetch_product_by_id(product_id: int):
-    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-        response = await client.get(f"{PRODUCT_URL}/{product_id}")
-
+async def fetch_product_by_id(product_id: int, client: httpx.AsyncClient | None = None):
+    http, owned = await _request_client(client=client)
+    try:
+        response = await http.get(url=f"{PRODUCT_URL}/{product_id}")
         if response.status_code == 404:
             return None
-
         response.raise_for_status()
         return response.json()
+    finally:
+        if owned:
+            await http.aclose()
 
 
-async def fetch_all_products(size: int = 20) -> list[dict]:
-    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+async def fetch_all_products(size: int = 20, client: httpx.AsyncClient | None = None) -> list[dict]:
+    http, owned = await _request_client(client=client)
+    try:
         all_products: list[dict] = []
         page = 0
-
         while True:
-            response = await client.get(
-                PRODUCT_URL,
+            response = await http.get(
+                url=PRODUCT_URL,
                 params={
                     "page": page,
                     "size": size
@@ -64,23 +75,24 @@ async def fetch_all_products(size: int = 20) -> list[dict]:
             page += 1
 
         return all_products
+    finally:
+        if owned:
+            await http.aclose()
+        
 
-async def fetch_products_by_ids(product_ids: list[int]) -> list[dict]:
+async def fetch_products_by_ids(product_ids: list[int], client: httpx.AsyncClient | None = None) -> list[dict]:
     if not product_ids:
         return []
-
+    http, owned = await _request_client(client)
     try:
-        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-            response = await client.post(
-                url=f"{PRODUCT_URL}/batch",
-                json={"productIds" : product_ids}
-            )
-            response.raise_for_status()
-            return response.json()
-    except (httpx.HTTPError, ValueError, KeyError) as e:
-        raise HTTPException(
-            status_code=502,
-            detail="Unable to batch-fetch products from Swift Cart backend."
-        ) from e
+        response = await http.post(
+            url=f"{PRODUCT_URL}/batch",
+            json={"productIds" : product_ids}
+        )
+        response.raise_for_status()
+        return response.json()
+    finally:
+        if owned:
+            await http.aclose()
 
 

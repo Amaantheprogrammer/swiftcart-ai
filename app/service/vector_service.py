@@ -1,54 +1,68 @@
+from functools import lru_cache
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
+from app.util.env_util import GOOGLE_API_KEY, EMBEDDING_MODEL
 
-embedding_model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2")
+embedding_model = GoogleGenerativeAIEmbeddings(model=EMBEDDING_MODEL)
 
 # Create the vector database
 vector_db = Chroma(
     collection_name="swiftcart_products",
     embedding_function=embedding_model,
-    persist_directory="./data/chroma-db",
+    persist_directory="swiftcart_products",
 )
+
+@lru_cache(maxsize=1)
+def create_vector_db() -> Chroma:
+    if not GOOGLE_API_KEY:
+        raise RuntimeError("Google API key is required to initialize product embeddings")
+    embeddings = GoogleGenerativeAIEmbeddings(model=EMBEDDING_MODEL)
+    return Chroma(
+        collection_name="swiftcart_products",
+        embedding_function=embeddings,
+        persist_directory="swiftcart_products",
+    )
+
+def _to_document(product: dict) -> Document | None:
+    """
+    Internal private helper
+    Converts product to document
+    """
+    product_id = product.get(key="id")
+    if product_id is None:
+        return None
+    try:
+        product_id = int(product_id)
+    except (TypeError, ValueError):
+        return None
+
+    name = str(product.get(key="name", default=""))
+    category = str(product.get(key="categoryName", default=""))
+    description = str(product.get(key="description", default=""))
+    price = product.get("price")
+    page_content = (
+        f"Product: {name}\nCategory: {category}\n"
+        f"Price: {price if price is not None else 'unknown'}\n"
+        f"Description: {description}"
+    )
+    metadata = {
+        "product_id": product_id,
+        "name": name,
+        "category": category,
+    }
+    if isinstance(price, (int, float)) and not isinstance(price, bool):
+        metadata["price"] = float(price)
+    return Document(page_content, metadata)
 
 # Convert product data into Document objects and store them in ChromaDB
 def store_products(products: list[dict]) -> int:
     documents = []
 
     for product in products:
-        product_id = product.get("id")
-
-        if product_id is None:
-            continue
-
-        name = product.get("name") or ""
-        category = product.get("categoryName") or ""
-        price = product.get("price")
-        description = product.get("description") or ""
-
-        # Adjacent f-strings concatenate into one string.
-        page_content = (
-            f"Product: {name}\n"
-            f"Category: {category}\n"
-            f"Price: {price}\n"
-            f"Description: {description}"
-        )
-
-        metadata = {
-            "product_id": int(product_id),
-            "name": str(name),
-            "category": str(category),
-        }
-
-        if price is not None:
-            metadata["price"] = float(price)
-
-        documents.append(
-            Document(
-                page_content=page_content,
-                metadata=metadata,
-            )
-        )
+        document = _to_document(product)
+        if document is not None:
+            documents.append(document)
 
     if not documents:
         return 0
