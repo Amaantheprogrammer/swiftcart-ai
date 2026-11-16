@@ -89,4 +89,4 @@ chat_chain = (RunnableLambda(get_product_context) | prompt_template | llm)
 async def process_message(message: str, client: httpx.AsyncClient | None = None) -> str:
     context = await get_product_context(inputs={"message": message}, client=client)
     response = await chat_chain.ainvoke(context)
-    return response.content
+    return response.content[0]["text"]
