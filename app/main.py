@@ -5,7 +5,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from app.service.product_service import fetch_all_products, fetch_product_by_id, fetch_products
 from app.service.vector_service import store_products
-from app.router.chat_router import router as chat_router
+from app.router.chat_router import chat_router
+from app.router.agent_router import agent_router
 from app.util.env_util import (
     INDEX_STARTUP_RETRIES,
     INDEX_RETRY_DELAY,
@@ -82,6 +83,7 @@ app.add_middleware(
 
 
 app.include_router(router=chat_router)
+app.include_router(router=agent_router)
 
 @app.get("/")
 async def health_check():

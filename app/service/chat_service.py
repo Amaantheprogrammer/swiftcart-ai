@@ -10,13 +10,15 @@ from app.util.llm_util import llm
 from app.service.product_service import fetch_products_by_ids
 from app.service.vector_service import search_product_ids
 
+from app.tools.product_tools import create_product_tools
+from app.agents.product_agents import create_product_agent
+
 from app.util.product_util import (
     extract_category,
     extract_max_price,
     filter_products_by_category,
     filter_products_by_price
 )
-
 
 prompt_template = ChatPromptTemplate.from_messages([
     (
@@ -50,7 +52,7 @@ prompt_template = ChatPromptTemplate.from_messages([
 ])
 
 
-async def get_product_context(inputs: dict, client: httpx.AsyncClient | None = None) -> dict:
+async def get_product_context(inputs: dict, client: httpx.AsyncClient) -> dict:
 
     message = inputs["message"]
 
@@ -88,5 +90,60 @@ chat_chain = (RunnableLambda(get_product_context) | prompt_template | llm)
 
 async def process_message(message: str, client: httpx.AsyncClient | None = None) -> str:
     context = await get_product_context(inputs={"message": message}, client=client)
-    response = await chat_chain.ainvoke(context)
-    return response
+    return await chat_chain.ainvoke(context)
+
+def create_chat_service(client: httpx.AsyncClient | None = None):
+    product_tools = create_product_tools(client)
+    product_agent = create_product_agent(tools=product_tools)
+    
+    async def process_message(message: str) -> str:
+        response = await product_agent.ainvoke({
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": message
+                    }
+                ]
+            })
+
+        messages = response["messages"]
+
+        for msg in reversed(messages):
+            if msg.type == "ai" and msg.content:
+                return msg.content
+
+        return "I couldn't generate a response. Please try again."
+
+    return process_message
+
+def create_rag_chain(client: httpx.AsyncClient):
+    
+    async def retrieve_context(inputs: dict):
+        return await get_product_context(
+            inputs=inputs,
+            client=client
+        )
+
+    rag_chain = (
+        RunnableLambda(retrieve_context)
+        | prompt_template
+        | llm
+    )
+
+    return rag_chain
+
+def create_action_agent(
+    client: httpx.AsyncClient,
+    access_token: str
+):
+
+    product_tools = create_product_tools(
+        client=client,
+        access_token=access_token
+    )
+
+    product_agent = create_product_agent(
+        tools=product_tools
+    )
+
+    return product_agent
