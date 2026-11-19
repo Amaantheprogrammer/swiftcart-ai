@@ -13,9 +13,7 @@ chat_router = APIRouter(prefix="/ai", tags=["AI Chat"])
 
 @chat_router.post("/chat")
 async def product_chat(request: Request, message: str):
-    client: httpx.AsyncClient = (
-        request.app.state.http_client
-    )
+    client: httpx.AsyncClient = (request.app.state.http_client)
 
     rag_chain = create_rag_chain(client)
 

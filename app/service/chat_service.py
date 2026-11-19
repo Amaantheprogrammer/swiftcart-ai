@@ -86,36 +86,6 @@ async def get_product_context(inputs: dict, client: httpx.AsyncClient) -> dict:
         "product_context": product_context
     }
 
-chat_chain = (RunnableLambda(get_product_context) | prompt_template | llm)
-
-async def process_message(message: str, client: httpx.AsyncClient | None = None) -> str:
-    context = await get_product_context(inputs={"message": message}, client=client)
-    return await chat_chain.ainvoke(context)
-
-def create_chat_service(client: httpx.AsyncClient | None = None):
-    product_tools = create_product_tools(client)
-    product_agent = create_product_agent(tools=product_tools)
-    
-    async def process_message(message: str) -> str:
-        response = await product_agent.ainvoke({
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": message
-                    }
-                ]
-            })
-
-        messages = response["messages"]
-
-        for msg in reversed(messages):
-            if msg.type == "ai" and msg.content:
-                return msg.content
-
-        return "I couldn't generate a response. Please try again."
-
-    return process_message
-
 def create_rag_chain(client: httpx.AsyncClient):
     
     async def retrieve_context(inputs: dict):
