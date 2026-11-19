@@ -1,5 +1,4 @@
 from langchain.agents import create_agent
-from app.tools.product_tools import search_products_tool
 from app.util.llm_util import model
 
 PRODUCT_AGENT_PROMPT = """
