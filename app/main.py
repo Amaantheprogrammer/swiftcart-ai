@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import logging
 import httpx
 import asyncio
@@ -14,9 +18,7 @@ from app.util.env_util import (
     HTTP_CONNECTION_TIMEOUT
 )
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
-load_dotenv()
 logging.basicConfig(level="INFO")
 logger = logging.getLogger(name=__name__)
 
